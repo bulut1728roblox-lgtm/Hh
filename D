@@ -1,0 +1,67 @@
+using UnityEngine;
+using UnityEngine.XR; // VR kütüphanesi
+
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CapsuleCollider))]
+public class MobileGorillaLocomotion : MonoBehaviour
+{
+    [Header("Hareket Ayarları")]
+    public float jumpForce = 5.0f; // Zıplama gücü (itme)
+    public float forwardBias = 0.3f; // Ne kadar ileri, ne kadar yukarı gideceği (0-1 arası)
+    public float gravityMultiplier = 2.0f; // Gorilla Tag hissi için daha ağır yerçekimi
+
+    [Header("Zemin Kontrolü")]
+    public float groundCheckDistance = 1.1f; // Yerden yükseklik kontrolü
+    public LayerMask groundLayer; // Yerin hangi layerda olduğu
+
+    private Rigidbody rb;
+    private bool isGrounded;
+    private Transform cameraTransform;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        cameraTransform = Camera.main.transform; // Ana kamerayı referans al
+
+        // Rigidbody ayarları
+        rb.useGravity = true;
+        rb.freezeRotation = true; // Kameranın fizik yüzünden dönmesini engelle
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Hızlı hareketlerde duvardan geçmemek için
+    }
+
+    void Update()
+    {
+        // 1. Zemin Kontrolü
+        isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+
+        // 2. Girdi Kontrolü (Mobil için)
+        // Ekrana dokunulduğunda veya Bluetooth kumandanın 'A/Fire1' tuşuna basıldığında
+        if (isGrounded && (Input.GetMouseButtonDown(0) || Input.GetButtonDown("Fire1")))
+        {
+            PerformGorillaJump();
+        }
+    }
+
+    void FixedUpdate()
+    {
+        // 3. Ekstra Yerçekimi Uygula
+        // Gorilla Tag'de karakterler hızlı düşer, bu hissi simüle eder.
+        rb.AddForce(Physics.gravity * (gravityMultiplier - 1.0f), ForceMode.Acceleration);
+    }
+
+    void PerformGorillaJump()
+    {
+        // 4. Hareket Yönünü Hesapla
+        // Kamera nereye bakıyorsa o yöne doğru bir itme uygula.
+        // forwardBias ile ne kadarının ileri, ne kadarının yukarı gideceğini ayarla.
+        
+        Vector3 viewDirection = cameraTransform.forward;
+        Vector3 jumpDirection = (viewDirection * forwardBias) + (Vector3.up * (1.0f - forwardBias));
+        jumpDirection.Normalize(); // Vektörü standartlaştır
+
+        // 5. Gücü Uygula
+        // Anlık bir patlama (Impulse) gücü uygula
+        rb.AddForce(jumpDirection * jumpForce, ForceMode.Impulse);
+
+        Debug.Log("
+
